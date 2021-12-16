@@ -64,55 +64,47 @@ pd.set_option('display.max_columns', None)
 # init chartevents with empty array
 icu_adm['CHARTEVENTS'] = np.empty((len(icu_adm), 0)).tolist()
 
-# set label to 1 if deathtime is not null, else label 0
-icu_adm['LABEL'] = np.where(pd.isnull(icu_adm['DEATHTIME']), 0, 1)
-
 # convert icu adm to dictionary
+# icu_adm_dict = icu_adm.to_dict('records')
+#
+# print(len(icu_adm_dict))
+
+icu_adm['label'] = np.where(((pd.notna(icu_adm['DEATHTIME'])) & (icu_adm['INTIME'] <= icu_adm['DEATHTIME']) & (icu_adm['DEATHTIME'] <= icu_adm['OUTTIME'])), 1, 0)
+# print(icu_adm.head(50))
+
 icu_adm_dict = icu_adm.to_dict('records')
-
-print(len(icu_adm_dict))
-
-s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-print("[", s, "] START READING CHARTEVENTS")
-# open and read chart events csv
-with open(chart_events_path, 'r') as read_chart:
-    chart_reader = reader(read_chart)
-    # skip chart events header and read from next line
-    header = next(chart_reader)
-    # print("chart events length: ", len(list(chart_reader)))
-    i = 0
-    for chart_row in chart_reader:
-        # print(chart_row)
-        if chart_row[3] and chart_row[4] and chart_row[9] and chart_row[5]:
-            icustay_id = int(chart_row[3])
-            itemid = int(chart_row[4])
-            valuenum = float(chart_row[9])
-            charttime = chart_row[5]
-            # loop through icu_adm_dict
-            # print(icustay_id)
-            for icu_adm_row in icu_adm_dict:
-                # print(icu_adm_row)
-                # if icustay id matches with chart events, chartevents data is less than 100
-                if icu_adm_row['ICUSTAY_ID'] == icustay_id and (len(icu_adm_row['CHARTEVENTS']) < 100):
-                    # append the chart events data to icu_adm_row
-                    icu_adm_row['CHARTEVENTS'].append([itemid, valuenum, charttime])
-                    break
-            if i == 10000:
-                break
-            i += 1
-
-s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-print("[", s, "] FINISHED READING CHARTEVENTS")
-
-print(len(icu_adm_dict))
 # print(icu_adm_dict[:10])
 
-temp_dict = []
+chunk_size = 5000000
+with pd.read_csv(chart_events_path, usecols=chart_events_keys, parse_dates=chart_events_dates, chunksize=chunk_size) as reader:
+    for chunk in reader:
+        s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print("[", s, "] START READING CHARTEVENTS CHUNK")
+        chunk['ITEM_TIME_VALUE'] = chunk[chunk.columns[1:]].apply(lambda x: list(x), axis=1)
+        # print(chunk.head())
+        chunk.drop(['ITEMID', 'CHARTTIME', 'VALUENUM'], axis=1, inplace=True)
+        # chunk['ICUSTAY_ID'] = pd.to_numeric(chunk['ICUSTAY_ID'])
+        chunk = chunk.groupby('ICUSTAY_ID')['ITEM_TIME_VALUE'].apply(list).reset_index(name='ITEM_TIME_VALUE')
+        # print(chunk.head())
+        chunk_dict = chunk.to_dict('records')
+        # print(chunk_dict[:2])
+        for i in chunk_dict:
+            icu_id = i['ICUSTAY_ID']
+            for j in icu_adm_dict:
+                if j['ICUSTAY_ID'] == icu_id:
+                    if len(i['ITEM_TIME_VALUE']) > 100:
+                        j['CHARTEVENTS'] = i['ITEM_TIME_VALUE'][:100]
+                    else:
+                        j['CHARTEVENTS'] = i['ITEM_TIME_VALUE']
+                    # print(j)
+                    # print(len(i['ITEM_TIME_VALUE']))
+                    # print(len(j['CHARTEVENTS']))
+        # icu_adm = pd.merge(icu_adm, chunk, on="ICUSTAY_ID", how="left")
+        # print(icu_adm.head())
+        s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print("[", s, "] FINISHED READING CHARTEVENTS CHUNK")
 
-for row in icu_adm_dict:
-    if row['CHARTEVENTS']:
-        temp_dict.append(row)
-        print(row['ICUSTAY_ID'], " chart event length: ", len(row['CHARTEVENTS']))
+print(icu_adm.shape)
+print(icu_adm.head())
 
-print(temp_dict)
 
