@@ -75,30 +75,48 @@ icu_adm['label'] = np.where(((pd.notna(icu_adm['DEATHTIME'])) & (icu_adm['INTIME
 icu_adm_dict = icu_adm.to_dict('records')
 # print(icu_adm_dict[:10])
 
+# read chart events csv in chunks, and append chart events to matching icu stay id (3hrs from in time)
 chunk_size = 5000000
 with pd.read_csv(chart_events_path, usecols=chart_events_keys, parse_dates=chart_events_dates, chunksize=chunk_size) as reader:
     for chunk in reader:
         s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print("[", s, "] START READING CHARTEVENTS CHUNK")
-        chunk['ITEM_TIME_VALUE'] = chunk[chunk.columns[1:]].apply(lambda x: list(x), axis=1)
+        # chunk = chunk.sort_values(by=['ITEMID', 'CHARTTIME'])
+        chunk['CHARTEVENTS'] = chunk[chunk.columns[1:]].apply(lambda x: list(x), axis=1)
         # print(chunk.head())
         chunk.drop(['ITEMID', 'CHARTTIME', 'VALUENUM'], axis=1, inplace=True)
         # chunk['ICUSTAY_ID'] = pd.to_numeric(chunk['ICUSTAY_ID'])
-        chunk = chunk.groupby('ICUSTAY_ID')['ITEM_TIME_VALUE'].apply(list).reset_index(name='ITEM_TIME_VALUE')
+        chunk = chunk.groupby('ICUSTAY_ID')['CHARTEVENTS'].apply(list).reset_index(name='CHARTEVENTS')
         # print(chunk.head())
         chunk_dict = chunk.to_dict('records')
-        # print(chunk_dict[:2])
+        print(chunk_dict[:2])
         for i in chunk_dict:
+            # print("chunk", i)
             icu_id = i['ICUSTAY_ID']
+            r = 0
             for j in icu_adm_dict:
                 if j['ICUSTAY_ID'] == icu_id:
-                    if len(i['ITEM_TIME_VALUE']) > 100:
-                        j['CHARTEVENTS'] = i['ITEM_TIME_VALUE'][:100]
-                    else:
-                        j['CHARTEVENTS'] = i['ITEM_TIME_VALUE']
+                    # if chart events of icu stay is equal to 100, break
+                    if len(j['CHARTEVENTS']) == 100:
+                        r += 1
+                        break
+                    # print("icustay id: ", icu_id)
+                    in_time = j['INTIME']
+                    # print("intime: ", in_time)
+                    for k in i['CHARTEVENTS']:
+                        # if chart event time is within 3 hours after in time
+                        if (k[1] >= in_time) & ((k[1] - in_time)/np.timedelta64(1, 'h') <= 3):
+                            j['CHARTEVENTS'].append(k)
+                        # if chart events of icu stay is equal to 100, break
+                        if len(j['CHARTEVENTS']) == 100:
+                            r += 1
+                            break
+                    # if len(j['CHARTEVENTS']) == 100:
+                    #     print(j, "100")
                     # print(j)
-                    # print(len(i['ITEM_TIME_VALUE']))
+                    # print(len(i['CHARTEVENTS']))
                     # print(len(j['CHARTEVENTS']))
+            print("Number of icustays(chartevent 100): ", r)
         # icu_adm = pd.merge(icu_adm, chunk, on="ICUSTAY_ID", how="left")
         # print(icu_adm.head())
         s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
