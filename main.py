@@ -89,7 +89,7 @@ with pd.read_csv(chart_events_path, usecols=chart_events_keys, parse_dates=chart
         chunk = chunk.groupby('ICUSTAY_ID')['CHARTEVENTS'].apply(list).reset_index(name='CHARTEVENTS')
         # print(chunk.head())
         chunk_dict = chunk.to_dict('records')
-        print(chunk_dict[:2])
+        # print(chunk_dict[:2])
         for i in chunk_dict:
             # print("chunk", i)
             icu_id = i['ICUSTAY_ID']
@@ -116,13 +116,20 @@ with pd.read_csv(chart_events_path, usecols=chart_events_keys, parse_dates=chart
                     # print(j)
                     # print(len(i['CHARTEVENTS']))
                     # print(len(j['CHARTEVENTS']))
-            print("Number of icustays(chartevent 100): ", r)
+            # print("Number of icustays(chartevent 100): ", r)
         # icu_adm = pd.merge(icu_adm, chunk, on="ICUSTAY_ID", how="left")
         # print(icu_adm.head())
         s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print("[", s, "] FINISHED READING CHARTEVENTS CHUNK")
 
-print(icu_adm.shape)
-print(icu_adm.head())
+# print(icu_adm.shape)
+# print(icu_adm.head())
+
+# save icu stays with chart events to csv file
+icu_chart_events = pd.DataFrame.from_records(icu_adm_dict)
+print(icu_chart_events.head())
+icu_chart_events.to_csv("./data/icu_chart_events.csv", header=True, index=False)
+
+
 
 
