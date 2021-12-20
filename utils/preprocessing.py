@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from csv import reader
 from datetime import datetime
 
 # file path settings
@@ -54,7 +53,7 @@ icu_adm['LABEL'] = np.where(((pd.notna(icu_adm['DEATHTIME'])) & (icu_adm['INTIME
 # convert icu stay dataframe to dictionary format
 icu_adm_dict = icu_adm.to_dict('records')
 
-# read chart events csv in chunks, and append chart events to matching icu stay id (3hrs from in time)
+# read chart events csv in chunks, and append chart events to matching icu stay id (3hrs from in_time)
 chunk_size = 10000000
 with pd.read_csv(chart_events_path, usecols=chart_events_keys, parse_dates=chart_events_dates, chunksize=chunk_size) as reader:
     count = 0
@@ -62,6 +61,8 @@ with pd.read_csv(chart_events_path, usecols=chart_events_keys, parse_dates=chart
         s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print("[", s, "] START READING CHARTEVENTS CHUNK ", count)
 
+        # convert null to None (valuenum)
+        chunk = chunk.replace({np.nan: None})
         # create 'ITEMID', 'VALUENUM', 'CHARTTIME' of each row as single list, and add into new column 'CHARTEVENTS'
         chunk['CHARTEVENTS'] = chunk[chunk.columns[1:]].apply(lambda x: list(x), axis=1)
         # drop previous 'ITEMID', 'VALUENUM', 'CHARTTIME' columns
