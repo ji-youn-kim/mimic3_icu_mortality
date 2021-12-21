@@ -12,7 +12,7 @@ icu_chart_events = pd.read_csv(icu_chart_events_path, usecols=icu_chart_keys)
 icu_chart_events = pd.get_dummies(icu_chart_events, columns=['ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', \
                                                              'MARITAL_STATUS', 'ETHNICITY', 'DIAGNOSIS'], drop_first=True)
 
-print("After Dummies: ", icu_chart_events.shape)
+pd.set_option('display.max_columns', None)
 
 item_total_list = []
 value_total_list = []
@@ -57,10 +57,8 @@ for count, row in icu_chart_events.iterrows():
     value_total_list.append(value_num_dict)
     timestamp_total_list.append(timestamp_dict)
 
-print("before: ", unique_item_list[:20])
+# sort list containing all item_ids
 unique_item_list.sort()
-print("unique item len: ", len(unique_item_list))
-print("after: ", unique_item_list[:20])
 
 unique_value_list = []
 unique_time_list = []
@@ -71,26 +69,13 @@ for i in unique_item_list:
     unique_value_list.append(value_column)
     unique_time_list.append(time_column)
 
-# print(unique_value_list[:20])
-# print(unique_time_list[:20])
-# print("unique_value_list len: ", len(unique_value_list))
-# print("len(icu_chart_events): ", len(icu_chart_events))
-# print("len(unique_time_list): ", len(unique_time_list))
 unique_list = unique_item_list + unique_value_list + unique_time_list
 # initialize item_id / value_num / timestamp column values to zero
 data = np.zeros(shape=(len(icu_chart_events), len(unique_list)))
 icu_chart_events_add = pd.DataFrame(data=data, columns=unique_list)
 # add item_id / value_num / timestamp columns to icu_chart_events dataframe
 icu_chart_events = pd.concat([icu_chart_events, icu_chart_events_add], axis=1)
-print(icu_chart_events.shape)
-print(icu_chart_events.head())
 
-print("============================================")
-print(value_total_list[:10])
-print(timestamp_total_list[:10])
-print("len(item_total_list): ", len(item_total_list))
-print("len(value_total_list): ", len(value_total_list))
-print("len(timestamp_total_list): ", len(timestamp_total_list))
 # for each row in dataframe, set item_id value = 1, value_num, timestamp
 for index, row in icu_chart_events.iterrows():
     for item_id in item_total_list[index]:
@@ -98,17 +83,13 @@ for index, row in icu_chart_events.iterrows():
         row[str(item_id) + '_VALNUM'] = value_total_list[index][item_id]
         row[str(item_id) + '_TIME'] = timestamp_total_list[index][item_id]
 
-print("--------------------------------------------")
-print(icu_chart_events.head())
 # if icu stay id is 8, 9 -> test data
 train_data = icu_chart_events[(icu_chart_events['ICUSTAY_ID'] % 10 != 8) & (icu_chart_events['ICUSTAY_ID'] % 10 != 9)]
 test_data = icu_chart_events[(icu_chart_events['ICUSTAY_ID'] % 10 == 8) | (icu_chart_events['ICUSTAY_ID'] % 10 == 9)]
 
-pd.set_option('display.max_columns', None)
 print(icu_chart_events.shape)
 print("Train data")
 print(train_data.shape)
-print(train_data.columns)
 print("Test data")
 print(test_data.shape)
 
