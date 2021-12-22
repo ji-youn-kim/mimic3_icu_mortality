@@ -36,7 +36,7 @@ for index, row in icu_chart_events.iterrows():
     lack_chart_events = 100 - len(chart_events)
     item_id_list = []
     for event in chart_events:
-        value_num = event[2] if event[2] else 0
+        event[2] = event[2] if event[2] else 0
         item_id_list.append(event)
     # zero padding
     for i in range(0, lack_chart_events):
