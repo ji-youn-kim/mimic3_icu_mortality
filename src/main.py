@@ -1,7 +1,7 @@
 import numpy as np
 import options
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report
+from sklearn.metrics import roc_auc_score, average_precision_score, classification_report
 
 op = options.Options()
 
@@ -16,13 +16,15 @@ x_test_logistic = np.load(x_test_logistic_path)
 y_test = np.load(y_test_path)
 
 log_model = LogisticRegression()
-log_model.fit(x_train_logistic, y_train.ravel())
+clf = log_model.fit(x_train_logistic, y_train.ravel())
 
-predictions = log_model.predict(x_test_logistic)
+predictions = clf.predict_proba(x_test_logistic)[:, 1]
 
-# print(set(y_train.ravel()) - set(predictions))
-# print(set(y_test.ravel()) - set(predictions))
+log_reg_auroc = roc_auc_score(y_test, predictions)
+log_reg_auprc = average_precision_score(y_test, predictions)
+# print(classification_report(y_test, predictions))
 
-print(classification_report(y_test, predictions))
+print("LOGISTIC REGRESSION AUROC: ", log_reg_auroc)
+print("LOGISTIC REGRESSION AUPRC: ", log_reg_auprc)
 
 
