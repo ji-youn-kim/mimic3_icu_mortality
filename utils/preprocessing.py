@@ -7,9 +7,10 @@ base_path = '/Users/jiyounkim/mimic-iii-clinical-database-1.4'
 icu_stay_path = str(base_path) + '/ICUSTAYS.csv'
 admissions_path = str(base_path) + '/ADMISSIONS.csv'
 chart_events_path = str(base_path) + '/CHARTEVENTS.csv'
+patients_path = str(base_path) + '/PATIENTS.csv'
 
 # columns needed from icu stay csv
-icu_keys = ['HADM_ID', 'ICUSTAY_ID', 'INTIME', 'OUTTIME', 'LOS']
+icu_keys = ['HADM_ID', 'ICUSTAY_ID', 'SUBJECT_ID', 'INTIME', 'OUTTIME', 'LOS']
 icu_dates = ['INTIME', 'OUTTIME']
 
 # columns needed from admissions csv
@@ -17,6 +18,9 @@ admissions_keys = ["HADM_ID", "ADMITTIME", "DEATHTIME", "ADMISSION_LOCATION",
                    "INSURANCE", "LANGUAGE", "RELIGION", "MARITAL_STATUS", "ETHNICITY",
                    "DIAGNOSIS","HAS_CHARTEVENTS_DATA"]
 admissions_dates = ["ADMITTIME","DEATHTIME"]
+
+# columns needed for patients csv
+patients_keys = ['SUBJECT_ID', 'GENDER']
 
 # columns needed from chartevents csv
 chart_events_keys = ['ICUSTAY_ID', 'ITEMID', 'VALUENUM', 'CHARTTIME']
@@ -43,6 +47,10 @@ icu_adm = icu_adm.loc[(icu_adm["HAS_CHARTEVENTS_DATA"] == 1)]
 print(icu_adm.shape)
 # show detailed dataframe info without abbreviation
 pd.set_option('display.max_columns', None)
+
+# read patients csv, and save into dataframe
+patients = pd.read_csv(patients_path, usecols=patients_keys)
+icu_adm = pd.merge(icu_adm, patients, on='SUBJECT_ID', how="left")
 
 # initialize chartevents column with empty array for each row
 icu_adm['CHARTEVENTS'] = np.empty((len(icu_adm), 0)).tolist()
