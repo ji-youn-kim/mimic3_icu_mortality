@@ -84,6 +84,8 @@ icu_chart_events_add = pd.DataFrame(data=data, columns=unique_list)
 icu_chart_events = pd.concat([icu_chart_events, icu_chart_events_add], axis=1)
 # drop chart events column
 icu_chart_events = icu_chart_events.drop(columns='CHARTEVENTS')
+# convert label type from int to float
+icu_chart_events['LABEL'] = icu_chart_events['LABEL'].astype(float)
 
 # for each row in dataframe, set item_id value = 1, value_num, timestamp
 for index, row in icu_chart_events.iterrows():
