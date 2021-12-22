@@ -11,12 +11,12 @@ y_test_npy_path = "../data/y_test.npy"
 # read icu chart events csv, and convert into dataframe
 icu_chart_events_path = "../data/icu_with_chart_events.csv"
 icu_chart_keys = ['ICUSTAY_ID', 'LOS', 'ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', \
-                  'ETHNICITY', 'DIAGNOSIS', 'CHARTEVENTS', 'LABEL']
+                  'ETHNICITY', 'DIAGNOSIS', 'GENDER', 'CHARTEVENTS', 'LABEL']
 icu_chart_events = pd.read_csv(icu_chart_events_path, usecols=icu_chart_keys)
 
 # one hot encode categorical data
 icu_chart_events = pd.get_dummies(icu_chart_events, columns=['ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', \
-                                                             'MARITAL_STATUS', 'ETHNICITY', 'DIAGNOSIS'], drop_first=True)
+                                                             'MARITAL_STATUS', 'ETHNICITY', 'DIAGNOSIS', 'GENDER'], drop_first=True)
 
 # display df without abbreviation
 pd.set_option('display.max_columns', None)
@@ -30,9 +30,7 @@ for count, row in icu_chart_events.iterrows():
     chart_events = literal_eval(row['CHARTEVENTS'])
     item_id_list = []
     value_num_dict = {}
-    value_num_count_dict = {}
     timestamp_dict = {}
-    timestamp_count_dict = {}
     for event in chart_events:
         item_id = event[1]
         timestamp = event[0]
@@ -42,22 +40,8 @@ for count, row in icu_chart_events.iterrows():
             unique_item_list.append(item_id)
         if item_id not in item_id_list:
             item_id_list.append(item_id)
-            value_num_dict[item_id] = cur_value_num
-            value_num_count_dict[item_id] = 1
-            timestamp_dict[item_id] = timestamp
-            timestamp_count_dict[item_id] = 1
-        else:
-            value_num_dict[item_id] = value_num_dict[item_id] + cur_value_num
-            timestamp_dict[item_id] = timestamp_dict[item_id] + timestamp
-            value_num_count_dict[item_id] += 1
-            timestamp_count_dict[item_id] += 1
-
-    # store average value_num if multiple values exist per item_id
-    for key in value_num_dict:
-        value_num_dict[key] = value_num_dict[key]/value_num_count_dict[key]
-    # store average timestamp if multiple values exist per item_id
-    for key in timestamp_dict:
-        timestamp_dict[key] = timestamp_dict[key]/timestamp_count_dict[key]
+        value_num_dict[item_id] = cur_value_num
+        timestamp_dict[item_id] = timestamp
 
     # store current item_id / value_num / timestamp lists
     item_total_list.append(item_id_list)
