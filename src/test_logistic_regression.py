@@ -1,9 +1,6 @@
 import numpy as np
-import options
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, average_precision_score
-
-op = options.Options()
 
 x_train_logistic_path = "../data/X_train_logistic.npy"
 y_train_path = "../data/y_train.npy"
