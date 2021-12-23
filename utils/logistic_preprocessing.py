@@ -87,9 +87,9 @@ print("TRAIN DATA SHAPE: ", train_data.shape)
 print("TEST DATA SHAPE: ", test_data.shape)
 
 # convert train, test data to numpy - x, y
-x_train = train_data.drop(columns='LABEL').to_numpy()
+x_train = train_data.drop(columns=['LABEL', 'ICUSTAY_ID']).to_numpy()
 y_train = train_data[['LABEL']].to_numpy()
-x_test = test_data.drop(columns='LABEL').to_numpy()
+x_test = test_data.drop(columns=['LABEL', 'ICUSTAY_ID']).to_numpy()
 y_test = test_data[['LABEL']].to_numpy()
 
 print("X_TRAIN SHAPE: ", x_train.shape)
