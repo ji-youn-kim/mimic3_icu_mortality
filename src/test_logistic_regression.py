@@ -12,7 +12,10 @@ y_train = np.load(y_train_path)
 x_test_logistic = np.load(x_test_logistic_path)
 y_test = np.load(y_test_path)
 
-log_model = LogisticRegression()
+# print(x_train_logistic[:10])
+# print(y_train[:10])
+
+log_model = LogisticRegression(solver='lbfgs', max_iter=1000)
 clf = log_model.fit(x_train_logistic, y_train.ravel())
 
 train_predictions = clf.predict_proba(x_train_logistic)[:, 1]
