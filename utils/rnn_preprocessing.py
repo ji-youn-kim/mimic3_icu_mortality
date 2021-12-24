@@ -12,10 +12,6 @@ icu_chart_keys = ['ICUSTAY_ID', 'LOS', 'ADMISSION_LOCATION', 'INSURANCE', 'LANGU
                   'ETHNICITY', 'DIAGNOSIS', 'GENDER', 'CHARTEVENTS', 'LABEL']
 icu_chart_events = pd.read_csv(icu_chart_events_path, usecols=icu_chart_keys)
 
-# one hot encode categorical data
-icu_chart_events = pd.get_dummies(icu_chart_events, columns=['ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', \
-                                                             'MARITAL_STATUS', 'ETHNICITY', 'DIAGNOSIS', 'GENDER'], drop_first=True)
-
 # display df without abbreviation
 # pd.set_option('display.max_columns', None)
 
@@ -23,7 +19,7 @@ icu_chart_events = pd.get_dummies(icu_chart_events, columns=['ADMISSION_LOCATION
 general_icu_info = icu_chart_events.drop(columns=['LABEL', 'CHARTEVENTS']).to_numpy()
 # print("len(general_icu_info): ", len(general_icu_info))
 # print("len(icu_chart_events): ", len(icu_chart_events))
-print(icu_chart_events.head())
+# print(icu_chart_events.head())
 
 train_list = []
 test_list = []
@@ -37,22 +33,30 @@ for index, row in icu_chart_events.iterrows():
     item_id_list = []
     for event in chart_events:
         event[2] = event[2] if event[2] else 0
+        # order: timestamp, item_id, value_num
         item_id_list.append(event)
+    # sort by timestamp
+    item_id_list.sort(key=lambda x: x[0])
     # zero padding
     for i in range(0, lack_chart_events):
         item_id_list.append([0, 0, 0])
+
     # train data
     if (icu_stay_id % 10 != 8) & (icu_stay_id % 10 != 9):
-        train_list.append([current_icu_info, item_id_list])
+        train_list.append([current_icu_info[1:], np.array(item_id_list)])
         # print("CUR TRAIN LIST: ", len(current_icu_info), len(item_id_list))
     # test data
     else:
-        test_list.append([current_icu_info, item_id_list])
+        test_list.append([current_icu_info[1:], np.array(item_id_list)])
         # print("CUR TEST LIST: ", len(current_icu_info), len(item_id_list))
+    # print(len(current_icu_info), len(np.array(item_id_list)))
+    # print(current_icu_info[1:])
 
 # convert train, test data to numpy - x, y
 x_train = np.array(train_list, dtype=object)
 x_test = np.array(test_list, dtype=object)
+
+print(len(x_train), len(x_test))
 
 # save train, test numpy data to npy file
 np.save(x_train_npy_path, x_train)

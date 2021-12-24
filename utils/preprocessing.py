@@ -103,6 +103,7 @@ with pd.read_csv(chart_events_path, usecols=chart_events_keys, parse_dates=chart
                             # modify timestamp to (chart event time - in time) in minutes
                             k[1] = (k[1] - in_time)/np.timedelta64(1, 'm')
                             # append icu stays dataframe CHARTEVENTS list with chunk CHARTEVENTS data
+                            # order: timestamp, item_id, value_num
                             j['CHARTEVENTS'].append([k[1], k[0], k[2]])
                         # if chart events of icu stay length is equal to 100, break
                         if len(j['CHARTEVENTS']) == 100:
