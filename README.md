@@ -12,4 +12,5 @@ The content of the repository consists of four parts:
 2. Converting the csv created above into .npy format for Logistic Regression and RNN.
 3. Conducting Logistic Regression, RNN training and testing respectively.
 4. Comparing the AUROC, AUPRC results.
+
 The mimic3_icu_mortality/utils/load_prep_csv.py contains code for loading and restoring conditional data from the raw csv files. Creating the .npy files for Logistic Regression and RNN are done in mimic3_icu_mortality/utils/logistic_preprocessing.py, and mimic3_icu_mortality/utils/rnn_preprocessing.py respectively. Code for training and testing Logistic Regression, RNN is located in mimic3_icu_mortality/src.
