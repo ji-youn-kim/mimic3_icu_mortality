@@ -4,7 +4,7 @@ Mortality prediction for ICU records with length-of-stay between 1 day and 2 day
 ## Motivation
 
 ## Dataset
-Mimic-III dataset can only be accessed through CITI training from https://mimic.physionet.org/gettingstarted/access/. The data is not provided in this repository. Download the CSVs, and modify the base_path location in utils/load_prep_csv.py.
+Mimic-III dataset can only be accessed through CITI training from https://mimic.physionet.org/gettingstarted/access/. The data is not provided in this repository. Download the CSVs, and modify the base_path location in mimic3_icu_mortality/utils/load_prep_csv.py.
 
 ## Structure
 The content of the repository consists of four parts:
