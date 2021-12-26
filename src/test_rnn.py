@@ -2,6 +2,11 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
+import time
+
+import rnn_options
+
+op = rnn_options.Options()
 
 x_train_rnn_path = "../data/X_train_rnn.npy"
 y_train_path = "../data/y_train.npy"
@@ -12,6 +17,9 @@ x_train_logistic = np.load(x_train_rnn_path, allow_pickle=True)
 y_train = np.load(y_train_path)
 x_test_logistic = np.load(x_test_rnn_path, allow_pickle=True)
 y_test = np.load(y_test_path)
+
+# set device type to gpu / cpu
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 total_train = []
 unique_item_ids = []
@@ -50,13 +58,40 @@ class GRUNet(nn.Module):
 
     def forward(self, x, item_x, h):
         # x shape: (batch_size, 100, general_dim)
-        # shape: (batch_size, 100, emb_dim)
+        # embedded shape: (batch_size, 100, emb_dim)
         embedded = self.embedding(item_x)
         x = torch.cat((x, embedded), 2)
         out, h = self.gru(x, h)
         out = self.fc(self.relu(out[:-1]))
         return out, h
 
+
+def train(train_loader, learn_rate=op.learn_rate, hidden_dim=op.hidden_dim, epochs=op.epochs):
+    input_dim = next(iter(train_loader))[0][2]
+    output_dim = 1
+    n_layers = 2
+    model = GRUNet(input_dim, hidden_dim, output_dim, n_layers)
+    model.to(device)
+
+    # define loss function, optimizer
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
+
+    model.train()
+    for epoch in range(epochs):
+        start_time = time.clock()
+        avg_loss = 0
+        for x, label, index in train_loader:
+            # item_x = item_id_loader[index]
+            model.zero_grad()
+            out, h = model(x.to(device).float())
+            loss = criterion(out, label.to(device.float()))
+            loss.backward()
+            optimizer.step()
+            avg_loss += loss.item()
+        end_time = time.clock()
+        print("Epoch {}/{} Done, Total Loss: {}, Time: {} seconds".format(epoch+1, epochs, avg_loss/len(train_loader), \
+                                                                          end_time-start_time))
 
 
 
