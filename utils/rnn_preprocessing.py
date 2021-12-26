@@ -12,6 +12,10 @@ icu_chart_keys = ['ICUSTAY_ID', 'LOS', 'ADMISSION_LOCATION', 'INSURANCE', 'LANGU
                   'ETHNICITY', 'DIAGNOSIS', 'GENDER', 'CHARTEVENTS', 'LABEL']
 icu_chart_events = pd.read_csv(icu_chart_events_path, usecols=icu_chart_keys)
 
+# one hot encode categorical data
+icu_chart_events = pd.get_dummies(icu_chart_events, columns=['ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', \
+                                                             'MARITAL_STATUS', 'ETHNICITY', 'DIAGNOSIS', 'GENDER'], drop_first=True)
+
 # display df without abbreviation
 # pd.set_option('display.max_columns', None)
 
