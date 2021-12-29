@@ -1,4 +1,5 @@
 # MIMIC-III ICU Mortality Prediction
+(Code Currently In Progress)
 Mortality prediction for ICU records with length-of-stay between 1 day and 2 days(1 <= (ICU Stay LOS) <= 2). Chart Events information of first three hours since ICU in-time is used for prediction.
 
 ## Motivation
