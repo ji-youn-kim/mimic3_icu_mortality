@@ -70,7 +70,11 @@ with pd.read_csv(chart_events_path, usecols=chart_events_keys, parse_dates=chart
         print("[", s, "] START READING CHARTEVENTS CHUNK ", count)
 
         # convert null to None (valuenum)
-        chunk = chunk.replace({np.nan: None})
+        # chunk = chunk.replace({np.nan: None})
+
+        # eliminate nan value_nums in CHARTEVENTS.csv
+        chunk = chunk[chunk['VALUENUM'].notna()]
+        print(chunk.head())
         # create 'ITEMID', 'VALUENUM', 'CHARTTIME' of each row as single list, and add into new column 'CHARTEVENTS'
         chunk['CHARTEVENTS'] = chunk[chunk.columns[1:]].apply(lambda x: list(x), axis=1)
         # drop previous 'ITEMID', 'VALUENUM', 'CHARTTIME' columns
@@ -118,7 +122,7 @@ with pd.read_csv(chart_events_path, usecols=chart_events_keys, parse_dates=chart
 # save icu stays with chart events to csv file
 icu_chart_events = pd.DataFrame.from_records(icu_adm_dict)
 print(icu_chart_events.head())
-icu_chart_events.to_csv("../data/icu_with_chart_events.csv", header=True, index=False)
+icu_chart_events.to_csv("../data/icu_with_chart_events_v_not_nan.csv", header=True, index=False)
 
 
 
