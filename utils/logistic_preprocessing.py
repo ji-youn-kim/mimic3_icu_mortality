@@ -1,12 +1,16 @@
 import pandas as pd
 import numpy as np
 from ast import literal_eval
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+
+import logistic_options
+op = logistic_options.Options()
 
 # configure path to save numpy files
-x_train_npy_path = "../data/X_train_logistic.npy"
-y_train_npy_path = "../data/y_train.npy"
-x_test_npy_path = "../data/X_test_logistic.npy"
-y_test_npy_path = "../data/y_test.npy"
+x_train_npy_path = "../data/X_train_logistic_test.npy"
+y_train_npy_path = "../data/y_train_test.npy"
+x_test_npy_path = "../data/X_test_logistic_test.npy"
+y_test_npy_path = "../data/y_test_test.npy"
 
 # read icu chart events csv, and convert into dataframe
 icu_chart_events_path = "../data/icu_with_chart_events.csv"
@@ -51,6 +55,45 @@ for count, row in icu_chart_events.iterrows():
 # sort list containing all item_ids
 unique_item_list.sort()
 
+# create item_id2id dictionary
+unique_item_dict = {}
+for idx, item in enumerate(unique_item_list):
+    unique_item_dict[item] = idx
+
+# shape: (icu_stay, len(unique_item_dict))
+value_scaler_list = [[0.0 for i in range(len(unique_item_dict))] for idx, icu_item_list in enumerate(item_total_list)]
+time_scaler_list = [[0.0 for i in range(len(unique_item_dict))] for idx, icu_item_list in enumerate(item_total_list)]
+
+# add value_num to item_id index
+for index, val_list in enumerate(value_scaler_list):
+    val_dict = value_total_list[index]
+    for idx, key in enumerate(val_dict):
+        # item value_num for item_id in val_dict
+        item_val = val_dict[key]
+        value_scaler_list[index][unique_item_dict[key]] = item_val
+
+# add timestamp to item_id index
+for index, val_list in enumerate(time_scaler_list):
+    time_dict = timestamp_total_list[index]
+    for idx, key in enumerate(time_dict):
+        # item timestamp for item_id in val_dict
+        item_time = time_dict[key]
+        time_scaler_list[index][unique_item_dict[key]] = item_time
+
+# scale value_num, timestamp, los
+if op.apply_scaler:
+    if op.scaler_type == "MinMax":
+        scaler = MinMaxScaler()
+    if op.scaler_type == "Standard":
+        scaler = StandardScaler()
+    # train_los = standardScaler.fit_transform(np.array(train_los).reshape(-1, 1))
+    value_scaler_list = scaler.fit_transform(value_scaler_list).tolist()
+    time_scaler_list = scaler.fit_transform(time_scaler_list).tolist()
+    df_los = icu_chart_events['LOS']
+    los_scaled = scaler.fit_transform(df_los.to_numpy().reshape(-1, 1))
+    los_scaled = pd.DataFrame(los_scaled, columns=['LOS'])
+    icu_chart_events['LOS'] = los_scaled
+
 unique_value_list = []
 unique_time_list = []
 # create value_num / timestamp columns per total item_ids
@@ -75,8 +118,8 @@ icu_chart_events['LABEL'] = icu_chart_events['LABEL'].astype(float)
 for index, row in icu_chart_events.iterrows():
     for item_id in item_total_list[index]:
         row[item_id] = 1
-        row[str(item_id) + '_VALNUM'] = value_total_list[index][item_id]
-        row[str(item_id) + '_TIME'] = timestamp_total_list[index][item_id]
+        row[str(item_id) + '_VALNUM'] = value_scaler_list[index][unique_item_dict[item_id]]
+        row[str(item_id) + '_TIME'] = time_scaler_list[index][unique_item_dict[item_id]]
 
 # if icu stay id is 8, 9 -> test data
 train_data = icu_chart_events[(icu_chart_events['ICUSTAY_ID'] % 10 != 8) & (icu_chart_events['ICUSTAY_ID'] % 10 != 9)]
