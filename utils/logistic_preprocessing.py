@@ -13,7 +13,11 @@ x_test_npy_path = "../data/X_test_logistic.npy"
 y_test_npy_path = "../data/y_test.npy"
 
 # read icu chart events csv, and convert into dataframe
-icu_chart_events_path = "../data/icu_with_chart_events.csv"
+if op.chart_events_v_not_nan:
+    icu_chart_events_path = "../data/icu_with_chart_events_v_not_nan.csv"
+else:
+    icu_chart_events_path = "../data/icu_with_chart_events.csv"
+
 icu_chart_keys = ['ICUSTAY_ID', 'LOS', 'ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', \
                   'ETHNICITY', 'DIAGNOSIS', 'GENDER', 'CHARTEVENTS', 'LABEL']
 icu_chart_events = pd.read_csv(icu_chart_events_path, usecols=icu_chart_keys)
