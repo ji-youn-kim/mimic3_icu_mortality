@@ -7,10 +7,10 @@ import logistic_options
 op = logistic_options.Options()
 
 # configure path to save numpy files
-x_train_npy_path = "../data/X_train_logistic_test.npy"
-y_train_npy_path = "../data/y_train_test.npy"
-x_test_npy_path = "../data/X_test_logistic_test.npy"
-y_test_npy_path = "../data/y_test_test.npy"
+x_train_npy_path = "../data/X_train_logistic.npy"
+y_train_npy_path = "../data/y_train.npy"
+x_test_npy_path = "../data/X_test_logistic.npy"
+y_test_npy_path = "../data/y_test.npy"
 
 # read icu chart events csv, and convert into dataframe
 icu_chart_events_path = "../data/icu_with_chart_events.csv"
