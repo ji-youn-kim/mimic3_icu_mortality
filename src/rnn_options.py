@@ -1,11 +1,9 @@
 class Options(object):
-    model_type = "retain_only_chart_events"   # retain_general, retain_only_chart_events
+    model_type = "retain_general"   # retain_general, retain_only_chart_events
     epochs = 20
     batch_size = 64
     hidden_dim = 256
-    dim_input = 256
-    dim_emb = 256
-    ce_dim_emb = 128
+    dim_emb = 256   # 128, 256
     dropout_input = 0.6
     dropout_emb = 0.6
     dim_alpha = 256

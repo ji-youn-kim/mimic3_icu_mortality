@@ -2,6 +2,12 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from rnn_word2id import *
 
+# configure path to save numpy files
+x_train_npy_path = "../data/X_train_rnn_indv.npy"
+x_test_npy_path = "../data/X_test_rnn_indv.npy"
+y_train_npy_path = "../data/y_train_rem_nochev.npy"
+y_test_npy_path = "../data/y_test_rem_nochev.npy"
+
 # set scaler for scaling numeric features
 standardScaler = StandardScaler()
 

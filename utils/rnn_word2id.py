@@ -1,12 +1,6 @@
 import pandas as pd
 from ast import literal_eval
 
-# configure path to save numpy files
-x_train_npy_path = "../data/X_train_rnn_indv.npy"
-x_test_npy_path = "../data/X_test_rnn_indv.npy"
-y_train_npy_path = "../data/y_train_rem_nochev.npy"
-y_test_npy_path = "../data/y_test_rem_nochev.npy"
-
 # read icu chart events csv, and convert into dataframe
 icu_chart_events_path = "../data/icu_with_chart_events_v_not_nan.csv"
 icu_chart_keys = ['ICUSTAY_ID', 'LOS', 'ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', \
