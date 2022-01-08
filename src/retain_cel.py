@@ -55,45 +55,56 @@ class ChartEventSequenceWithLabelDataset(Dataset):
         self.labels = labels
 
         self.seq = []
-        # create a coo_matrix for each icu_stay - item_id, value_num
+        # create a coo_matrix for each icu_stay
         for index_i, icu_item_list in enumerate(self.item_id):
             row = []
             col = []
             val = []
-            # coo_matrix shape: (100, 1 + admit_count + insurance_count + lang_count + religion_count +marital_count
+            # coo_matrix shape: (time_step, features)
+            # retain_general : (100, 1 + admit_count + insurance_count + lang_count + religion_count +marital_count
             # + ethnicity_count + diagnosis_count + gender_count + item_id_count + 1)
+            # chart_events_only: (100, item_id_count + 1)
             for idx, item in enumerate(icu_item_list):
                 col_len = 0
 
+                # one-hot encoding in row for item_id
+                row.append(idx)
+                col.append(col_len + item)
+                val.append(1.0)
+                col_len += item_ids_dict_len
+
+                # value_num value in row for value_num
+                row.append(idx)
+                col.append(col_len)
+                val.append(self.value_num[index_i][idx])
+                col_len += 1
+
                 if op.model_type == "retain_general":
 
+                    # los value in row for los
                     row.append(idx)
                     col.append(col_len)
                     val.append(self.los[index_i])
-                    # print("self.los[index_i]: ", self.los[index_i])
                     col_len += 1
-                    # one-hot row for admit
+
+                    # one-hot encoding in row for admit, insurance, lang, religion, marital, eth, diag, gender
                     row.append(idx)
                     col.append(col_len + self.admit[index_i])
-                    # print("self.admit[index_i]: ", self.admit[index_i])
                     val.append(1.0)
                     col_len += admit_dict_len
 
                     row.append(idx)
                     col.append(col_len + self.insurance[index_i])
-                    # print("self.insurance[index_i]: ", self.insurance[index_i])
                     val.append(1.0)
                     col_len += insurance_dict_len
 
                     row.append(idx)
                     col.append(col_len + self.lang[index_i])
-                    # print("self.lang[index_i]: ", self.lang[index_i])
                     val.append(1.0)
                     col_len += lang_dict_len
 
                     row.append(idx)
                     col.append(col_len + self.religion[index_i])
-                    # print("self.religion[index_i]: ", self.religion[index_i])
                     val.append(1.0)
                     col_len += religion_dict_len
 
@@ -114,26 +125,8 @@ class ChartEventSequenceWithLabelDataset(Dataset):
 
                     row.append(idx)
                     col.append(col_len + self.gender[index_i])
-                    # print("self.gender[index_i]: ", self.gender[index_i])
                     val.append(1.0)
                     col_len += gender_dict_len
-
-                row.append(idx)
-                col.append(col_len + item)
-                # print("item: ", item)
-                val.append(1.0)
-                col_len += item_ids_dict_len
-
-                # add value_num value at the end of current row
-                row.append(idx)
-                col.append(col_len)
-                val.append(self.value_num[index_i][idx])
-                col_len += 1
-
-                # print("col_len: ", col_len)
-                # print("in batch true_seq_feature_count: ", 1 + admit_dict_len + insurance_dict_len + lang_dict_len
-                #       + religion_dict_len + marital_dict_len + ethnicity_dict_len + diagnosis_dict_len
-                #       + gender_dict_len + item_ids_dict_len + 1)
 
             self.seq.append(coo_matrix((np.array(val, dtype='float'), (np.array(row), np.array(col))),
                             shape=(len(icu_item_list), col_len)).toarray())
@@ -150,7 +143,7 @@ def collate_fn(batch):
     batch = sorted(batch, key=lambda x: x[1], reverse=True)
 
     # batch_seq: [seq1_array, seq1_array, ...], type: list of arrays
-    # batch_before_pad_len: [5, 2, ...], type: list
+    # batch_before_pad_len: [5, 2, ...], type: list of numbers
     batch_seq, batch_before_pad_len, batch_labels = zip(*batch)
 
     return torch.tensor(batch_seq), torch.tensor(batch_labels), batch_before_pad_len
@@ -186,12 +179,11 @@ class RETAIN(nn.Module):
         sum_masked_exp = torch.sum(masked_exp, dim=1, keepdim=True)
         return masked_exp / sum_masked_exp
 
-    # def forward(self, general, item, val, lengths):
     def forward(self, seq, lengths):
         batch_size = seq.size(dim=0)
+        max_len = seq.size(dim=1)
 
         emb = self.embedding(seq).float()
-        print("emb.size(): ", emb.size())
 
         # length shape: batch_size, type: list
         packed_input = pack_padded_sequence(emb, lengths, batch_first=self.batch_first)
@@ -203,12 +195,12 @@ class RETAIN(nn.Module):
 
         # make padding alpha values to zeros
         mask = torch.FloatTensor(
-            [[[1.0] if i < lengths[idx] else [0.0] for i in range(100)] for idx in range(batch_size)]
+            [[[1.0] if i < lengths[idx] else [0.0] for i in range(max_len)] for idx in range(batch_size)]
         )
-        print("mask shape: ", np.shape(mask))
-        # print("e shape: ", e.size())
+
         if next(self.parameters()).is_cuda:
             mask = mask.cuda()
+
         # alpha size: (batch_size, 100, 1)
         alpha = self.masked_softmax(e, mask)
 
@@ -226,13 +218,13 @@ class RETAIN(nn.Module):
 
         # logit shape: (batch_size, dim_output)
         logit = self.output(context)
-        print("logit.size(): ", logit.size())
 
-        # print("self.output[1].weight: ", self.output[1].weight)
-        # size: (dim_output, dim_emb)
-        # print("output[1] weight size", self.output[1].weight.size())
+        # w_emb size: (dim_emb, dim_input)
+        w_emb = self.embedding[0].weight
+        # w size: (dim_output, dim_emb)
+        w = self.output[1].weight
 
-        return logit, alpha, beta
+        return logit, alpha, beta, w_emb, w
 
 
 def main():
@@ -244,9 +236,9 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     train_loader = DataLoader(dataset=train_set, batch_size=op.batch_size, shuffle=True,
-                              collate_fn=collate_fn)
+                              collate_fn=collate_fn, drop_last=True)
     test_loader = DataLoader(dataset=test_set, batch_size=op.batch_size, shuffle=True,
-                             collate_fn=collate_fn)
+                             collate_fn=collate_fn, drop_last=True)
 
     if op.model_type == "retain_general":
         dim_input = 1 + admit_dict_len + insurance_dict_len + lang_dict_len + religion_dict_len + marital_dict_len \
@@ -254,6 +246,8 @@ def main():
 
     elif op.model_type == "retain_only_chart_events":
         dim_input = item_ids_dict_len + 1
+
+    print("dim_input: ", dim_input)
 
     # define model and set to device
     model = RETAIN(dim_input=dim_input)
@@ -273,20 +267,13 @@ def main():
         for b_i, batch in enumerate(tqdm(train_loader)):
 
             batch_seq, batch_labels, batch_before_pad_len, = batch
-            print("batch_seq: ", batch_seq)
-            # print("batch_seq.size(): ", batch_seq.size())
-            # print("batch_labels: ", batch_labels)
-            print("batch_labels.size(): ", batch_labels.size())
-            # print("true_seq_feature_count: ", 1 + admit_dict_len + insurance_dict_len + lang_dict_len
-            #            + religion_dict_len + marital_dict_len + ethnicity_dict_len + diagnosis_dict_len
-            #            + gender_dict_len + item_ids_dict_len + 1)
 
             batch_seq = batch_seq.to(device)
             batch_labels = batch_labels.to(device)
 
             # output shape: (batch_size, dim_output)
             # output, alpha, beta = model(batch_general, batch_item_id, batch_value_num, batch_before_pad_len)
-            output, alpha, beta = model(batch_seq, batch_before_pad_len)
+            output, alpha, beta, _, _ = model(batch_seq, batch_before_pad_len)
 
             # batch labels shape: (batch_size, dim_output)
             loss = criterion(output, batch_labels.long())
@@ -321,22 +308,27 @@ def main():
     total_loss = 0
     test_count = 0
 
+    death_pred_contrib = [0.0 for _ in range(dim_input)]
+    death_pred_count = [0.0 for _ in range(dim_input)]
+    alive_pred_contrib = [0.0 for _ in range(dim_input)]
+    alive_pred_count = [0.0 for _ in range(dim_input)]
+
     model.eval()
 
     with torch.no_grad():
         for b_i, batch in enumerate(tqdm(test_loader)):
-            batch_seq, batch_labels, batch_before_pad_len, = batch
-            # print("batch_seq: ", batch_seq)
-            print("batch_seq.size(): ", batch_seq.size())
-            # print("batch_labels: ", batch_labels)
-            print("batch_labels.size(): ", batch_labels.size())
+            batch_seq, batch_labels, batch_before_pad_len = batch
 
             batch_seq = batch_seq.to(device)
             batch_labels = batch_labels.to(device)
 
+            # interpretability
+            # alpha size: (batch_size, 100, 1)
+            # beta size: (batch_size, 100, dim_emb)
+            # w_emb size: (dim_emb, dim_input)
+            # w size: (dim_output, dim_emb)
             # output shape: (batch_size, dim_output)
-            # output, alpha, beta = model(batch_general, batch_item_id, batch_value_num, batch_before_pad_len)
-            output, alpha, beta = model(batch_seq, batch_before_pad_len)
+            output, alpha, beta, w_emb, w = model(batch_seq, batch_before_pad_len)
 
             # batch labels shape: (batch_size, dim_output)
             loss = criterion(output, batch_labels.long())
@@ -348,16 +340,57 @@ def main():
             total_loss += loss.item()
             test_count += batch_labels.size(dim=0)
 
-    print("Total Test count: ", test_count)
-    print("Average Loss: ", total_loss / test_count)
+            death_pred_per = softmax(output)[idx_s][1].item()
+            alive_pred_per = softmax(output)[idx_s][0].item()
+            for idx_s, seq_batch in enumerate(batch_seq):
+                for idx_t, time in enumerate(seq_batch):
+                    # calculate contribution before padding
+                    if idx_t >= batch_before_pad_len[idx_s]:
+                        break
+                    for idx_f, feat in enumerate(time):
+                        # if feature in x is not 0
+                        if feat:
+                            alpha_j = alpha[idx_s][idx_t]
+                            beta_j = beta[idx_s][idx_t]
+                            w_emb_k = w_emb[:, idx_f]
+                            # compute contribution
+                            contribution = torch.mul(torch.matmul(torch.mul(alpha_j, w).float(),
+                                                     (beta_j * w_emb_k).unsqueeze(1).float()), feat)
+                            # if true_label == 1 and model predicted as death
+                            if batch_labels[idx_s].item():
+                                print("death_pred_per: ", death_pred_per)
+                                if death_pred_per >= 0.5:
+                                    death_pred_contrib[idx_f] += contribution
+                                    death_pred_count[idx_f] += 1
+                            # if true_label == 0 and model predicted as not death
+                            else:
+                                print("alive_pred_per: ", alive_pred_per)
+                                if alive_pred_per >= 0.5:
+                                    alive_pred_contrib[idx_f] += contribution
+                                    alive_pred_count[idx_f] += 1
 
-    test_auroc = roc_auc_score(torch.cat(test_labels, 0).cpu().detach().numpy(),
-                               torch.cat(test_outputs, 0).cpu().detach().numpy()[:, 1])
-    test_auprc = average_precision_score(torch.cat(test_labels, 0).cpu().detach().numpy(),
-                                         torch.cat(test_outputs, 0).cpu().detach().numpy()[:, 1])
+        for idx_d, contrib_d in enumerate(death_pred_contrib):
+            death_pred_contrib[idx_d] = (idx_d, contrib_d/death_pred_count[idx_d])
 
-    print("RETAIN TEST AUROC: ", test_auroc)
-    print("RETAIN TEST AUPRC: ", test_auprc)
+        for idx_a, contrib_a in enumerate(alive_pred_contrib):
+            alive_pred_contrib[idx_a] = (idx_a, contrib_a/alive_pred_count[idx_a])
+
+        death_pred_contrib = sorted(death_pred_contrib, key=lambda x: x[1], reverse=True)
+        alive_pred_contrib = sorted(alive_pred_contrib, key=lambda x: x[1], reverse=True)
+
+        print("death_pred_contrib: ", death_pred_contrib)
+        print("alive_pred_contrib: ", alive_pred_contrib)
+
+        print("Total Test count: ", test_count)
+        print("Average Loss: ", total_loss / test_count)
+
+        test_auroc = roc_auc_score(torch.cat(test_labels, 0).cpu().detach().numpy(),
+                                   torch.cat(test_outputs, 0).cpu().detach().numpy()[:, 1])
+        test_auprc = average_precision_score(torch.cat(test_labels, 0).cpu().detach().numpy(),
+                                             torch.cat(test_outputs, 0).cpu().detach().numpy()[:, 1])
+
+        print("RETAIN TEST AUROC: ", test_auroc)
+        print("RETAIN TEST AUPRC: ", test_auprc)
 
 
 main()

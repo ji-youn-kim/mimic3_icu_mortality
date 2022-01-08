@@ -89,3 +89,57 @@ ethnicity_dict_len = len(ethnicity_dict)
 diagnosis_dict_len = len(diagnosis_dict)
 gender_dict_len = len(gender_dict)
 item_ids_dict_len = len(item_ids_dict)
+
+general_dict = {}
+for key in item_ids_dict:
+    if key == "unknown":
+        general_dict[len(general_dict)] = 'unknown_item_id'
+    else:
+        general_dict[len(general_dict)] = key
+
+general_dict[len(general_dict)] = 'value_num'
+general_dict[len(general_dict)] = 'los'
+
+for key in admit_loc_dict:
+    if key == 'unknown':
+        general_dict[len(general_dict)] = 'unknown_admit'
+    else:
+        general_dict[len(general_dict)] = key
+for key in insurance_dict:
+    if key == 'unknown':
+        general_dict[len(general_dict)] = 'unknown_insurance'
+    else:
+        general_dict[len(general_dict)] = key
+for key in lang_dict:
+    if key == "unknown":
+        general_dict[len(general_dict)] = 'unknown_lang'
+    else:
+        general_dict[len(general_dict)] = key
+for key in religion_dict:
+    if key == "unknown":
+        general_dict[len(general_dict)] = 'unknown_religion'
+    else:
+        general_dict[len(general_dict)] = key
+for key in marital_dict:
+    if key == "UNKNOWN (DEFAULT)":
+        general_dict[len(general_dict)] = 'unknown_marital'
+    else:
+        general_dict[len(general_dict)] = key
+for key in ethnicity_dict:
+    if key == "UNKNOWN/NOT SPECIFIED":
+        general_dict[len(general_dict)] = 'unknown_ethnicity'
+    else:
+        general_dict[len(general_dict)] = key
+for key in diagnosis_dict:
+    if key == "unknown":
+        general_dict[len(general_dict)] = 'unknown_diagnosis'
+    else:
+        general_dict[len(general_dict)] = key
+for key in gender_dict:
+    if key == "unknown":
+        general_dict[len(general_dict)] = 'unknown_gender'
+    else:
+        general_dict[len(general_dict)] = key
+
+# print("general_dict: ", general_dict)
+# print("len(general_dict): ", len(general_dict))
