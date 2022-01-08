@@ -31,7 +31,7 @@ print("LOGISTIC REGRESSION TRAIN AUPRC: ", train_auprc)
 print("LOGISTIC REGRESSION TEST AUROC: ", test_auroc)
 print("LOGISTIC REGRESSION TEST AUPRC: ", test_auprc)
 
-with open('./logistic_regression.txt', 'w') as f:
+with open('./jiyoun_logistic_regression.txt', 'w') as f:
     f.write(f'{train_auroc:.4f}\n')
     f.write(f'{train_auprc:.4f}\n')
     f.write(f'{test_auroc:.4f}\n')
