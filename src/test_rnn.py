@@ -289,10 +289,6 @@ def main():
             total_loss += loss.item()
             train_count += batch_labels.size(dim=0)
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
         print("Total Train count: ", train_count)
 
         train_auroc = roc_auc_score(torch.cat(labels, 0).cpu().detach().numpy(),
@@ -337,9 +333,9 @@ def main():
             total_loss += loss.item()
             test_count += batch_labels.size(dim=0)
 
-            death_pred_per = softmax(output)[idx_s][1].item()
-            alive_pred_per = softmax(output)[idx_s][0].item()
             for idx_s, seq_batch in enumerate(batch_seq):
+                death_pred_per = softmax(output)[idx_s][1].item()
+                alive_pred_per = softmax(output)[idx_s][0].item()
                 for idx_t, time in enumerate(seq_batch):
                     # calculate contribution before padding
                     if idx_t >= batch_before_pad_len[idx_s]:
@@ -355,28 +351,50 @@ def main():
                                                      (beta_j * w_emb_k).unsqueeze(1).float()), feat)
                             # if true_label == 1 and model predicted as death
                             if batch_labels[idx_s].item():
-                                print("death_pred_per: ", death_pred_per)
                                 if death_pred_per >= 0.5:
-                                    death_pred_contrib[idx_f] += contribution
+                                    death_pred_contrib[idx_f] += contribution[1][0].item()
                                     death_pred_count[idx_f] += 1
                             # if true_label == 0 and model predicted as not death
                             else:
-                                print("alive_pred_per: ", alive_pred_per)
                                 if alive_pred_per >= 0.5:
-                                    alive_pred_contrib[idx_f] += contribution
+                                    alive_pred_contrib[idx_f] += contribution[0][0].item()
                                     alive_pred_count[idx_f] += 1
 
+        print("len general_dict: ", len(general_dict))
+        print("len death_pred_contrib: ", len(death_pred_contrib))
+        death_pred_diagnosis = []
+        death_pred_admission_loc = []
+        alive_pred_diagnosis = []
+        alive_pred_admission_loc = []
+        diagnosis_idx_start = item_ids_dict_len + 2 + admit_dict_len + insurance_dict_len + lang_dict_len + \
+            religion_dict_len + marital_dict_len + ethnicity_dict_len
+        diagnosis_idx_start_end = diagnosis_idx_start + diagnosis_dict_len
+        admission_idx_start = item_ids_dict_len + 2
+        admission_idx_end = admission_idx_start + admit_dict_len
+
         for idx_d, contrib_d in enumerate(death_pred_contrib):
-            death_pred_contrib[idx_d] = (idx_d, contrib_d/death_pred_count[idx_d])
+            if death_pred_count[idx_d]:
+                if diagnosis_idx_start <= idx_d < diagnosis_idx_start_end:
+                    death_pred_diagnosis.append((general_dict[idx_d], contrib_d/death_pred_count[idx_d]))
+                elif admission_idx_start <= idx_d < admission_idx_end:
+                    death_pred_admission_loc.append((general_dict[idx_d], contrib_d/death_pred_count[idx_d]))
 
         for idx_a, contrib_a in enumerate(alive_pred_contrib):
-            alive_pred_contrib[idx_a] = (idx_a, contrib_a/alive_pred_count[idx_a])
+            if alive_pred_count[idx_a]:
+                if diagnosis_idx_start <= idx_a < diagnosis_idx_start_end:
+                    alive_pred_diagnosis.append((general_dict[idx_a], contrib_d/alive_pred_count[idx_a]))
+                if admission_idx_start <= idx_a < admission_idx_end:
+                    alive_pred_admission_loc.append((general_dict[idx_a], contrib_a/alive_pred_count[idx_a]))
 
-        death_pred_contrib = sorted(death_pred_contrib, key=lambda x: x[1], reverse=True)
-        alive_pred_contrib = sorted(alive_pred_contrib, key=lambda x: x[1], reverse=True)
+        death_pred_diagnosis = sorted(death_pred_diagnosis, key=lambda x: x[1], reverse=True)
+        death_pred_admission_loc = sorted(death_pred_admission_loc, key=lambda x: x[1], reverse=True)
+        alive_pred_diagnosis = sorted(alive_pred_diagnosis, key=lambda x: x[1], reverse=True)
+        alive_pred_admission_loc = sorted(alive_pred_admission_loc, key=lambda x: x[1], reverse=True)
 
-        print("death_pred_contrib: ", death_pred_contrib)
-        print("alive_pred_contrib: ", alive_pred_contrib)
+        print("death_pred_diagnosis: ", death_pred_diagnosis)
+        print("death_pred_admission_loc: ", death_pred_admission_loc)
+        print("alive_pred_diagnosis: ", alive_pred_diagnosis)
+        print("alive_pred_admission_loc: ", alive_pred_admission_loc)
 
         print("Total Test count: ", test_count)
         print("Average Loss: ", total_loss / test_count)
@@ -394,6 +412,22 @@ def main():
             f.write(f'{train_auprc:.4f}\n')
             f.write(f'{test_auroc:.4f}\n')
             f.write(f'{test_auprc:.4f}\n')
+
+        with open('./death_predict_diagnosis.txt', 'w') as f:
+            for diag_d in death_pred_diagnosis:
+                f.write(f'{diag_d[0]}:\t{diag_d[1]}\n')
+
+        with open('./death_predict_admission.txt', 'w') as f:
+            for admit_d in death_pred_admission_loc:
+                f.write(f'{admit_d[0]}:\t{admit_d[1]}\n')
+
+        with open('./alive_predict_diagnosis.txt', 'w') as f:
+            for diag_a in alive_pred_diagnosis:
+                f.write(f'{diag_a[0]}:\t{diag_a[1]}\n')
+
+        with open('./alive_predict_admission.txt', 'w') as f:
+            for admit_a in death_pred_admission_loc:
+                f.write(f'{admit_a[0]}:\t{admit_a[1]}\n')
 
 
 main()

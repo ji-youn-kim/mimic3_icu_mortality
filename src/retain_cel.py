@@ -308,11 +308,6 @@ def main():
     total_loss = 0
     test_count = 0
 
-    death_pred_contrib = [0.0 for _ in range(dim_input)]
-    death_pred_count = [0.0 for _ in range(dim_input)]
-    alive_pred_contrib = [0.0 for _ in range(dim_input)]
-    alive_pred_count = [0.0 for _ in range(dim_input)]
-
     model.eval()
 
     with torch.no_grad():
@@ -328,7 +323,7 @@ def main():
             # w_emb size: (dim_emb, dim_input)
             # w size: (dim_output, dim_emb)
             # output shape: (batch_size, dim_output)
-            output, alpha, beta, w_emb, w = model(batch_seq, batch_before_pad_len)
+            output, alpha, beta, _, _ = model(batch_seq, batch_before_pad_len)
 
             # batch labels shape: (batch_size, dim_output)
             loss = criterion(output, batch_labels.long())
@@ -339,47 +334,6 @@ def main():
 
             total_loss += loss.item()
             test_count += batch_labels.size(dim=0)
-
-            death_pred_per = softmax(output)[idx_s][1].item()
-            alive_pred_per = softmax(output)[idx_s][0].item()
-            for idx_s, seq_batch in enumerate(batch_seq):
-                for idx_t, time in enumerate(seq_batch):
-                    # calculate contribution before padding
-                    if idx_t >= batch_before_pad_len[idx_s]:
-                        break
-                    for idx_f, feat in enumerate(time):
-                        # if feature in x is not 0
-                        if feat:
-                            alpha_j = alpha[idx_s][idx_t]
-                            beta_j = beta[idx_s][idx_t]
-                            w_emb_k = w_emb[:, idx_f]
-                            # compute contribution
-                            contribution = torch.mul(torch.matmul(torch.mul(alpha_j, w).float(),
-                                                     (beta_j * w_emb_k).unsqueeze(1).float()), feat)
-                            # if true_label == 1 and model predicted as death
-                            if batch_labels[idx_s].item():
-                                print("death_pred_per: ", death_pred_per)
-                                if death_pred_per >= 0.5:
-                                    death_pred_contrib[idx_f] += contribution
-                                    death_pred_count[idx_f] += 1
-                            # if true_label == 0 and model predicted as not death
-                            else:
-                                print("alive_pred_per: ", alive_pred_per)
-                                if alive_pred_per >= 0.5:
-                                    alive_pred_contrib[idx_f] += contribution
-                                    alive_pred_count[idx_f] += 1
-
-        for idx_d, contrib_d in enumerate(death_pred_contrib):
-            death_pred_contrib[idx_d] = (idx_d, contrib_d/death_pred_count[idx_d])
-
-        for idx_a, contrib_a in enumerate(alive_pred_contrib):
-            alive_pred_contrib[idx_a] = (idx_a, contrib_a/alive_pred_count[idx_a])
-
-        death_pred_contrib = sorted(death_pred_contrib, key=lambda x: x[1], reverse=True)
-        alive_pred_contrib = sorted(alive_pred_contrib, key=lambda x: x[1], reverse=True)
-
-        print("death_pred_contrib: ", death_pred_contrib)
-        print("alive_pred_contrib: ", alive_pred_contrib)
 
         print("Total Test count: ", test_count)
         print("Average Loss: ", total_loss / test_count)
