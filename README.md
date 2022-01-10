@@ -16,5 +16,7 @@ The mimic3_icu_mortality/utils/load_prep_csv.py contains code for loading and re
 
 ## References
 (1) Choi, Edward, et al. "Retain: An interpretable predictive model for healthcare using reverse time attention mechanism." arXiv preprint arXiv:1608.05745 (2016).
+
 (2) https://github.com/mp2893/retain
+
 (3) https://github.com/ast0414/pytorch-retain
