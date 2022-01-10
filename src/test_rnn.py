@@ -13,9 +13,9 @@ from utils.rnn_word2id import *
 op = rnn_options.Options()
 
 x_train_rnn_path = "../data/X_train_rnn_indv.npy"
-y_train_path = "../data/y_train_rem_nochev.npy"
+y_train_path = "../data/y_train.npy"
 x_test_rnn_path = "../data/X_test_rnn_indv.npy"
-y_test_path = "../data/y_test_rem_nochev.npy"
+y_test_path = "../data/y_test.npy"
 trained_model_path = "../data/trained_model_path_interp_ep20.pt"
 
 x_train_rnn = np.load(x_train_rnn_path, allow_pickle=True)
@@ -29,8 +29,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ChartEventSequenceWithLabelDataset(Dataset):
     def __init__(self, inputs, labels, reverse=True):
-
-        labels = np.squeeze(labels, axis=1)
 
         if len(inputs[0]) != len(labels):
             raise ValueError("Inputs and Labels have different lengths")

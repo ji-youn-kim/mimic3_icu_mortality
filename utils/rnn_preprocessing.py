@@ -5,8 +5,8 @@ from rnn_word2id import *
 # configure path to save numpy files
 x_train_npy_path = "../data/X_train_rnn_indv.npy"
 x_test_npy_path = "../data/X_test_rnn_indv.npy"
-y_train_npy_path = "../data/y_train_rem_nochev.npy"
-y_test_npy_path = "../data/y_test_rem_nochev.npy"
+y_train_npy_path = "../data/y_train.npy"
+y_test_npy_path = "../data/y_test.npy"
 
 # set scaler for scaling numeric features
 standardScaler = StandardScaler()
@@ -66,7 +66,7 @@ for count, row in icu_chart_events.iterrows():
         train_item_id.append(event_item)
         train_value_num.append(event_value)
         train_no_pad_len.append(chart_event_len)
-        y_train.append([label])
+        y_train.append(label)
     # store feature lists to test data if icu stay id ends with 8 or 9
     else:
         test_los.append(los)
@@ -81,7 +81,7 @@ for count, row in icu_chart_events.iterrows():
         test_item_id.append(event_item)
         test_value_num.append(event_value)
         test_no_pad_len.append(chart_event_len)
-        y_test.append([label])
+        y_test.append(label)
 
 # scale los, value_num data for train, test data individually
 train_los = standardScaler.fit_transform(np.array(train_los).reshape(-1, 1))
@@ -99,10 +99,10 @@ train_value_num = train_value_num.tolist()
 test_los = test_los.flatten().tolist()
 test_value_num = test_value_num.tolist()
 
-print(len(train_los), len(train_admit), len(train_insurance), len(train_lang), len(train_religion), len(train_marital), \
+print(len(train_los), len(train_admit), len(train_insurance), len(train_lang), len(train_religion), len(train_marital),
       len(train_ethnicity), len(train_diagnosis), len(train_gender), len(train_item_id), len(train_value_num))
 
-print(len(test_los), len(test_admit), len(test_insurance), len(test_lang), len(test_religion), len(test_marital), \
+print(len(test_los), len(test_admit), len(test_insurance), len(test_lang), len(test_religion), len(test_marital),
       len(test_ethnicity), len(test_diagnosis), len(test_gender), len(test_item_id), len(test_value_num))
 
 # append all test data to single list

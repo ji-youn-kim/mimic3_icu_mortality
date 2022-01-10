@@ -18,13 +18,22 @@ if op.chart_events_v_not_nan:
 else:
     icu_chart_events_path = "../data/icu_with_chart_events.csv"
 
-icu_chart_keys = ['ICUSTAY_ID', 'LOS', 'ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS', \
+icu_chart_keys = ['ICUSTAY_ID', 'LOS', 'ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', 'MARITAL_STATUS',
                   'ETHNICITY', 'DIAGNOSIS', 'GENDER', 'CHARTEVENTS', 'LABEL']
 icu_chart_events = pd.read_csv(icu_chart_events_path, usecols=icu_chart_keys)
 
+icu_chart_events['CHARTEVENTS'] = icu_chart_events['CHARTEVENTS'].apply(literal_eval)
+
+print("before empty chart event rows removal: ", len(icu_chart_events))
+# remove icu stay rows with no chart events
+icu_chart_events.drop(icu_chart_events[icu_chart_events['CHARTEVENTS'].map(len) == 0].index, inplace=True)
+print("after empty chart event rows removal:", len(icu_chart_events))
+
 # one hot encode categorical data
-icu_chart_events = pd.get_dummies(icu_chart_events, columns=['ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION', \
-                                                             'MARITAL_STATUS', 'ETHNICITY', 'DIAGNOSIS', 'GENDER'], drop_first=True)
+icu_chart_events = pd.get_dummies(icu_chart_events, columns=['ADMISSION_LOCATION', 'INSURANCE', 'LANGUAGE', 'RELIGION',
+                                                             'MARITAL_STATUS', 'ETHNICITY', 'DIAGNOSIS', 'GENDER'],
+                                  drop_first=True)
+icu_chart_events = icu_chart_events.reset_index(drop=True)
 
 # display df without abbreviation
 pd.set_option('display.max_columns', None)
@@ -35,7 +44,7 @@ timestamp_total_list = []
 unique_item_list = []
 # store all item_id / value_num / timestamp values per each dataframe row
 for count, row in icu_chart_events.iterrows():
-    chart_events = literal_eval(row['CHARTEVENTS'])
+    chart_events = row['CHARTEVENTS']
     item_id_list = []
     value_num_dict = {}
     timestamp_dict = {}
@@ -135,9 +144,9 @@ print("TEST DATA SHAPE: ", test_data.shape)
 
 # convert train, test data to numpy - x, y
 x_train = train_data.drop(columns=['LABEL', 'ICUSTAY_ID']).to_numpy()
-y_train = train_data[['LABEL']].to_numpy()
+y_train = train_data['LABEL'].to_numpy()
 x_test = test_data.drop(columns=['LABEL', 'ICUSTAY_ID']).to_numpy()
-y_test = test_data[['LABEL']].to_numpy()
+y_test = test_data['LABEL'].to_numpy()
 
 print("X_TRAIN SHAPE: ", x_train.shape)
 print("Y_TRAIN SHAPE: ", y_train.shape)
